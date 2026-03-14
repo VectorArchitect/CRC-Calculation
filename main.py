@@ -27,7 +27,7 @@ def calcrc(buf, lbuf):
 
 packet=input("Enter the data of 8 byte in hexadecimal (e.g., A1 03 00 00 00 0F 1D 6E): ").split()
 print(f"Packet: {packet}")
-packet = [int(x, 16) for x in buffer]  # Convert hexadecimal input
+packet = [int(x, 16) for x in packet]  # Convert hexadecimal input
 #buffer = [0xA1, 0x03, 0x00, 0x00, 0x00, 0x0F]  # Data in hexadecimal
 data=[]
 crc=[]
