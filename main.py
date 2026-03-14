@@ -25,14 +25,27 @@ def calcrc(buf, lbuf):
     #return crc
 
 
-buffer=input("Enter the data in hexadecimal (e.g., A1 03 00 00 00 0F): ").split()
-buffer = [int(x, 16) for x in buffer]  # Convert hexadecimal input
+packet=input("Enter the data of 8 byte in hexadecimal (e.g., A1 03 00 00 00 0F 1D 6E): ").split()
+print(f"Packet: {packet}")
+packet = [int(x, 16) for x in buffer]  # Convert hexadecimal input
 #buffer = [0xA1, 0x03, 0x00, 0x00, 0x00, 0x0F]  # Data in hexadecimal
-lbuf = len(buffer) - 1
+data=[]
+crc=[]
+#splitting packet into 'data' and 'crc'
+for d in range(6):
+    data.append(packet[d])
+ldata=len(data)-1
+crc.append(packet[6])
+crc.append(packet[7])
+cl,ch=calcrc(data,ldata)
 
-ch, cl = calcrc(buffer, lbuf)
 
-print("CRC High:", ch)
-print("CRC Low:", cl)
+print(f"Packet: {packet}")
+print(f"Data: {data} \n CRC: {crc}")
+print(f"[CRCH: {ch:02x} , CRCL: {cl:02x}]")
 
-#print(crc)
+#checking data integrity
+if crc[0]==ch and crc[1]==cl:
+    print("Data is Intact")
+else:
+    print("Data is varied!")
