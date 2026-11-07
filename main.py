@@ -1,51 +1,83 @@
 def calcrc(buf, lbuf):
-    #crc=0xFFFF
     ch = 0xFF
     cl = 0xFF
 
     for i in range(lbuf + 1):
-        cl = cl ^ buf[i]        #we are getting remainders after XOR
+        cl ^= buf[i]
 
-        for ctrc in range(8):   #this processes byte, as every byte has 8 bits
-            carryh = ch % 2     #we are checking if the lowest bit of ch is 1 or 0, if it is 1 then carryh will be 1 otherwise it will be 0
+        for _ in range(8):
+            carryh = ch % 2
             carryl = cl % 2
-
-            #Right shifting Mechanism
-            ch = ch // 2          # // this is floor division- 7/2=3 not 3.5, which is equivalent to right shift by 1
-            #high bit of cl will shift into low bit of ch
-            #ch LSB is MSB of cl, so we add 128 to cl if carryh is 1
+            ch //= 2
             cl = (128 * carryh) + (cl // 2)
 
-            if carryl != 0:  #if carryl is 1, we need to XOR with the polynomial
-                ch = ch ^ 0xA0
-                cl = cl ^ 0x01
-                #crc=crc ^ 0xA001
+            if carryl:
+                ch ^= 0xA0
+                cl ^= 0x01
 
     return ch, cl
-    #return crc
 
 
-packet=input("Enter the data of 8 byte in hexadecimal (e.g., A1 03 00 00 00 0F 1D 6E): ").split()
-print(f"Packet: {packet}")
-packet = [int(x, 16) for x in packet]  # Convert hexadecimal input
-#buffer = [0xA1, 0x03, 0x00, 0x00, 0x00, 0x0F]  # Data in hexadecimal
-data=[]
-crc=[]
-#splitting packet into 'data' and 'crc'
-for d in range(6):
-    data.append(packet[d])
-ldata=len(data)-1
-crc.append(packet[6])
-crc.append(packet[7])
-cl,ch=calcrc(data,ldata)
+def parse_packet(raw):
+    """Parse exactly eight hexadecimal bytes: six data bytes and two CRC bytes."""
+    tokens = raw.split()
+    if len(tokens) != 8:
+        raise ValueError("Expected exactly 8 hexadecimal bytes (6 data bytes + 2 CRC bytes).")
+
+    try:
+        packet = [int(token, 16) for token in tokens]
+    except ValueError as exc:
+        raise ValueError("Every packet value must be a hexadecimal byte.") from exc
+
+    if any(value < 0 or value > 0xFF for value in packet):
+        raise ValueError("Each packet value must be between 00 and FF.")
+
+    return packet
 
 
-print(f"Packet: {packet}")
-print(f"Data: {data} \n CRC: {crc}")
-print(f"[CRCH: {ch:02x} , CRCL: {cl:02x}]")
+def verify_packet(packet):
+    """Return validity and calculated CRC bytes for a six-byte Modbus-style frame.
 
-#checking data integrity
-if crc[0]==ch and crc[1]==cl:
-    print("Data is Intact")
-else:
+    calcrc() returns the high byte then the low byte, while the packet carries
+    the Modbus CRC low byte first.
+    """
+    if len(packet) != 8:
+        raise ValueError("Expected exactly 8 bytes (6 data bytes + 2 CRC bytes).")
+    if any(not isinstance(value, int) or value < 0 or value > 0xFF for value in packet):
+        raise ValueError("Packet values must be integers between 00 and FF.")
+
+    packet = list(packet)
+    crc_high, crc_low = calcrc(packet[:6], 5)
+    received_crc = packet[6:8]
+    return received_crc == [crc_low, crc_high], crc_high, crc_low
+
+
+def main():
+    try:
+        packet = parse_packet(input(
+            "Enter the 8-byte packet in hexadecimal "
+            "(e.g., A1 03 00 00 00 0F 1D 6E): "
+        ))
+    except ValueError as error:
+        print(f"Invalid packet: {error}")
+        return 2
+
+    valid, crc_high, crc_low = verify_packet(packet)
+    data = packet[:6]
+    received_crc = packet[6:8]
+
+    print(f"Packet: {' '.join(f'{value:02X}' for value in packet)}")
+    print(f"Data: {data}")
+    print(f"Received CRC (low byte first): {received_crc[0]:02X} {received_crc[1]:02X}")
+    print(f"Calculated CRC: high={crc_high:02X}, low={crc_low:02X}")
+
+    if valid:
+        print("Data is Intact")
+        return 0
+
     print("Data is varied!")
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
