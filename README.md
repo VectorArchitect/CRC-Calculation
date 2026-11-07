@@ -27,7 +27,7 @@ python main.py
 Run the standard-library test suite from the repository root:
 
 ```bash
-python -m unittest discover -v
+python -m unittest discover -s tests -v
 ```
 
 The tests cover the documented CRC vector, packet parsing, byte order, corrupted CRCs, and command-line error handling.
